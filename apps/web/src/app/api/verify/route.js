@@ -1,23 +1,22 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req){
 
-  const { userId } = auth();
+  const { hash } = await req.json();
 
-  const body = await req.json();
-
-  const record = await db.userAsset.create({
-    data:{
-      userId,
-      wallet: body.wallet,
-      fileName: body.fileName,
-      fileHash: body.hash,
-      ipfsCID: body.cid,
-      contractTx: body.tx
-    }
+  const asset = await db.userAsset.findFirst({
+    where:{ fileHash:hash }
   });
 
-  return NextResponse.json(record);
+  if(!asset){
+    return NextResponse.json({exists:false});
+  }
+
+  return NextResponse.json({
+    exists:true,
+    wallet:asset.wallet,
+    date:asset.createdAt,
+    tx:asset.contractTx
+  });
 }

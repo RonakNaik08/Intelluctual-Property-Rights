@@ -1,73 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { getAssets, addActivity } from "@/lib/storage";
+import CryptoJS from "crypto-js";
 
-export default function VerifyPage() {
+export default function VerifyPage(){
 
-const [result, setResult] = useState(null);
+  const [result,setResult] = useState(null);
 
-async function generateHash(file) {
-const buffer = await file.arrayBuffer();
-const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-const hashArray = Array.from(new Uint8Array(hashBuffer));
-return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-}
+  const verify = async(file)=>{
 
-async function handleVerify(e) {
+    const buffer = await file.arrayBuffer();
+    const hash = CryptoJS.SHA256(
+      CryptoJS.lib.WordArray.create(buffer)
+    ).toString();
 
+    const res = await fetch("/api/verify",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json"},
+      body:JSON.stringify({hash})
+    });
 
-const file = e.target.files[0];
-if (!file) return;
+    const data = await res.json();
+    setResult(data);
+  };
 
-const hash = await generateHash(file);
+  return(
+    <div>
 
-const assets = getAssets();
-const found = assets.find(a => a.hash === hash);
+      <h1>Verify Ownership</h1>
 
-if (found) {
-  setResult({ status: "found", asset: found });
-  addActivity(`Ownership verified for "${found.title}"`);
-} else {
-  setResult({ status: "not_found" });
-  addActivity("Verification attempted for unknown file");
-}
+      <input type="file"
+        onChange={(e)=>verify(e.target.files[0])}
+      />
 
+      {result && (
+        <div>
+          {result.exists ?
+            <>
+              <p>Owner: {result.wallet}</p>
+              <p>Registered: {result.date}</p>
+            </>
+            :
+            <p>File not registered</p>
+          }
+        </div>
+      )}
 
-}
-
-return ( <div className="max-w-2xl">
-
-  <h1 className="text-3xl font-bold text-cyan-400 mb-6">
-    Verify Ownership
-  </h1>
-
-  <div className="border-2 border-dashed border-gray-600 p-10 rounded-xl text-center">
-    <input type="file" onChange={handleVerify} />
-  </div>
-
-  {result && result.status === "found" && (
-    <div className="mt-6 bg-green-500/20 border border-green-500 p-5 rounded-lg">
-      <p className="text-green-400 font-semibold">
-        Ownership Verified!
-      </p>
-      <p className="text-gray-300 mt-2">
-        Title: {result.asset.title}
-      </p>
-      <p className="text-gray-400">
-        Registered on: {result.asset.createdAt}
-      </p>
     </div>
-  )}
-
-  {result && result.status === "not_found" && (
-    <div className="mt-6 bg-red-500/20 border border-red-500 p-5 rounded-lg text-red-400">
-      No ownership record found.
-    </div>
-  )}
-
-</div>
-
-
-);
+  );
 }

@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+ 
+}
+
+model UserAsset {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String
+  wallet      String
+  fileName    String
+  fileHash    String
+  ipfsCID     String
+  contractTx  String
+  createdAt   DateTime @default(now())
+}
+
+model UserWallet {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String
+  wallet  String
+}
